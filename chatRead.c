@@ -12,16 +12,15 @@
 #include <sys/un.h>
 
 #define BUFFERSIZE 256
-#define SOCKETPATH "/temp/socket"
+#define SOCKETPATH "/tmp/socket"
 
 int main() {
-    int serverFD;
     int clientFD;
     struct sockaddr_un serverAddr;
     char buffer[BUFFERSIZE];
 
     // create UNIX domain socket
-    if ((serverFD = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+    if ((clientFD = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
         perror("socket failure");
         exit(EXIT_FAILURE);
     }
@@ -37,7 +36,7 @@ int main() {
         close(clientFD);
         exit(EXIT_FAILURE);
     }
-    printf("Server Connected\n");
+    printf("Connected to the server.\n");
 
     while (1) {
         // get message from client
