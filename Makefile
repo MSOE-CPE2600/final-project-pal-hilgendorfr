@@ -1,3 +1,7 @@
+# Assignment: Lab 13 - chat program
+# File: Makefile
+# Names: Ryan Pal Hilgendorf, Alexander Toma
+# Created: 12/10/2024
 CFLAGS=-c -g -Wall -Werror
 CC=gcc
 
@@ -10,7 +14,7 @@ chatWrite: chatWrite.o
 	$(CC) -o server chatWrite.o
 
 clean:
-	rm -f *.o chatRead chatWrite
+	rm -f *.o server client
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $<

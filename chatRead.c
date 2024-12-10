@@ -1,6 +1,6 @@
 /******************************************************************************
  * Assignment: Lab 13 - chat program
- * File: chatRead.c
+ * File: chatRead.c -- client
  * Names: Ryan Pal Hilgendorf, Alexander Toma
  * Created: 12/8/2024
  *****************************************************************************/
@@ -8,16 +8,50 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
 #define BUFFERSIZE 256
 #define SOCKETPATH "/tmp/socket"
+int clientFD;
+
+// read messages from server
+void *readServer(void *arg) {
+    char buffer[BUFFERSIZE];
+    while (1) {
+        memset(buffer, 0, BUFFERSIZE);
+        int bytesRead = read(clientFD, buffer, BUFFERSIZE);
+        if (bytesRead > 0) {
+            printf("\nRecieved: %s\nSend: ", buffer);
+            fflush(stdout);
+        } else if (bytesRead == 0) {
+            printf("Server Disconnected.\n");
+            break;
+        } else {
+            perror("Error recieving messsage.");
+            break;
+        }
+    }
+    pthread_exit(NULL);
+}
+
+// send messages to server
+void *writeServer(void *arg) {
+    char buffer[BUFFERSIZE];
+    while (1) {
+        printf("Send: ");
+        fgets(buffer, BUFFERSIZE, stdin);
+        if (write(clientFD, buffer, strlen(buffer)) == -1) {
+            perror("Error sending message.");
+            break;
+        }
+    }
+    pthread_exit(NULL);
+}
 
 int main() {
-    int clientFD;
     struct sockaddr_un serverAddr;
-    char buffer[BUFFERSIZE];
 
     // create UNIX domain socket
     if ((clientFD = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
@@ -38,30 +72,16 @@ int main() {
     }
     printf("Connected to the server.\n");
 
-    while (1) {
-        // get message from client
-        printf("Send: ");
-        fgets(buffer, BUFFERSIZE, stdin);
+    // create read and write threads
+    pthread_t readThread;
+    pthread_t writeThread;
+    pthread_create(&readThread, NULL, readServer, NULL);
+    pthread_create(&writeThread, NULL, writeServer, NULL);
 
-        // send message to server
-        if (write(clientFD, buffer, strlen(buffer)) == -1) {
-            perror("Error sending message.");
-            break;
-        }
+    // wait on threads
+    pthread_join(readThread, NULL);
+    pthread_cancel(writeThread);
 
-        // read response from server
-        memset(buffer, 0, BUFFERSIZE);
-        int bytesRead = read(clientFD, buffer, BUFFERSIZE);
-        if (bytesRead > 0) {
-            printf("Recieved: %s\n", buffer);
-        } else if (bytesRead == 0) {
-            printf("Server Disconnected.\n");
-            break;
-        } else {
-            perror("Error recieving messsage.");
-            break;
-        }
-    }
     close(clientFD);
     return 0;
 }
